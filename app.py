@@ -28,7 +28,10 @@ def upload_file():
     print(f'UPLOADING {original_filename} as {filename}')
 
     try:
-        
+        container_client = blob_client.get_container_client('gcode')
+        container_client.create_container()
+        blob = container_client.get_blob_client(filename)
+        blob.upload_blob(file)
 
 if __name__ == "__main__":
     print('ok')
