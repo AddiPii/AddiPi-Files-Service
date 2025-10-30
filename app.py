@@ -29,9 +29,17 @@ def upload_file():
 
     try:
         container_client = blob_client.get_container_client('gcode')
-        container_client.create_container()
+        if not container_client.exists():
+            container_client.create_container()
+        
         blob = container_client.get_blob_client(filename)
-        blob.upload_blob(file)
+        blob.upload_blob(file, overwrite=True)
+
+
+        message = {
+            'event': 'file_uploaded',
+            
+        }
 
 if __name__ == "__main__":
     print('ok')
