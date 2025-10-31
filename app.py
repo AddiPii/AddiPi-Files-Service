@@ -20,7 +20,7 @@ sb_client = ServiceBusClient.from_connection_string(SERVICE_BUS_CONN)
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No File'}), 400
-    
+
     file = request.files['file']
     original_filename = file.filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -32,10 +32,9 @@ def upload_file():
         container_client = blob_client.get_container_client('gcode')
         if not container_client.exists():
             container_client.create_container()
-        
+
         blob = container_client.get_blob_client(filename)
         blob.upload_blob(file, overwrite=True)
-
 
         message = {
             'event': 'file_uploaded',
@@ -51,13 +50,17 @@ def upload_file():
 
         print(f'UPLOADED {original_filename} as {filename}')
         return jsonify({'status': 'success', 'fileId': filename})
-    
+
     except Exception as e:
         print(f'ERROR uploading {original_filename}: {e}')
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'}), 200
 
 
 if __name__ == "__main__":
-    print('ok')
+    print("AddiPi Files Service starting...")
+    app.run(host='0.0.0.0', port=5000, debug=True)
