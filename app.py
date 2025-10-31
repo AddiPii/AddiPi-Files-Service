@@ -3,6 +3,7 @@ from azure.storage.blob import BlobServiceClient
 from azure.servicebus import ServiceBusClient
 import os
 import json
+import time
 from datetime import datetime
 
 
@@ -38,8 +39,25 @@ def upload_file():
 
         message = {
             'event': 'file_uploaded',
-            
+            'fileId': filename,
+            'originalFileName': original_filename,
+            'timestamp': str(time.time()),
+            'scheduledAt': request.form.get('scheduledAt')
         }
+
+        with sb_client:
+            sender = sb_client.get_queue_sender(queue_name='print-queue')
+            sender.send_messages([{'body': json.dumps(message)}])
+
+        print(f'UPLOADED {original_filename} as {filename}')
+        return jsonify({'status': 'success', 'fileId': filename})
+    
+    except Exception as e:
+        print(f'ERROR uploading {original_filename}: {e}')
+        return jsonify({'error': str(e)}), 500
+
+
+
 
 if __name__ == "__main__":
     print('ok')
