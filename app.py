@@ -25,22 +25,10 @@ sb_client = None
 if not SERVICE_BUS_CONN:
     print("SERVICE_BUS_CONN not set — Service Bus messaging will be disabled.")
 else:
-    # Pierwsza próba: domyślny transport AMQP (port 5671)
     try:
         sb_client = ServiceBusClient.from_connection_string(SERVICE_BUS_CONN)
     except Exception as e:
         print(f'Failed to create ServiceBusClient (AMQP): {e}')
-        # Jeśli sieć blokuje porty AMQP, spróbuj AMQP over WebSockets (port 443)
-        try:
-            print('Retrying ServiceBusClient with AMQP over WebSockets...')
-            sb_client = ServiceBusClient.from_connection_string(
-                SERVICE_BUS_CONN,
-                transport_type=TransportType.AmqpOverWebsocket
-            )
-        except Exception as e2:
-            print(f'Failed to create ServiceBusClient with WebSockets: {e2}')
-            print('Disabling Service Bus messaging — messages will not be sent.')
-            sb_client = None
 
 
 @app.route('/upload', methods=['POST'])
@@ -62,6 +50,7 @@ def upload_file():
 
         blob = container_client.get_blob_client(filename)
         blob.upload_blob(file, overwrite=True)
+        print(f'UPLOADED {original_filename} as {filename} to Blob Container')
 
         message = {
             'event': 'file_uploaded',
@@ -75,7 +64,9 @@ def upload_file():
             sender = sb_client.get_queue_sender(queue_name='print-queue')
             sender.send_messages([{'body': json.dumps(message)}])
 
-        print(f'UPLOADED {original_filename} as {filename}')
+        print(
+            f'UPLOADED {original_filename} as {filename} to Service Bus Queue'
+            )
         return jsonify({'status': 'success', 'fileId': filename})
 
     except Exception as e:
