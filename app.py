@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from azure.storage.blob import BlobServiceClient
-from azure.servicebus import ServiceBusClient
+from azure.servicebus import ServiceBusClient, TransportType
 import os
 import json
 import time
@@ -12,8 +12,35 @@ app = Flask(__name__)
 STORAGE_CONN = os.getenv('STORAGE_CONN')
 SERVICE_BUS_CONN = os.getenv('SERVICE_BUS_CONN')
 
-blob_client = BlobServiceClient.from_connection_string(STORAGE_CONN)
-sb_client = ServiceBusClient.from_connection_string(SERVICE_BUS_CONN)
+if not STORAGE_CONN:
+    raise ValueError("STORAGE_CONN environment variable is not set.")
+else:
+    try:
+        blob_client = BlobServiceClient.from_connection_string(STORAGE_CONN)
+    except Exception as e:
+        raise ConnectionRefusedError(
+            f'Failed to connect to Azure Blob Storage: {e}')
+
+sb_client = None
+if not SERVICE_BUS_CONN:
+    print("SERVICE_BUS_CONN not set — Service Bus messaging will be disabled.")
+else:
+    # Pierwsza próba: domyślny transport AMQP (port 5671)
+    try:
+        sb_client = ServiceBusClient.from_connection_string(SERVICE_BUS_CONN)
+    except Exception as e:
+        print(f'Failed to create ServiceBusClient (AMQP): {e}')
+        # Jeśli sieć blokuje porty AMQP, spróbuj AMQP over WebSockets (port 443)
+        try:
+            print('Retrying ServiceBusClient with AMQP over WebSockets...')
+            sb_client = ServiceBusClient.from_connection_string(
+                SERVICE_BUS_CONN,
+                transport_type=TransportType.AmqpOverWebsocket
+            )
+        except Exception as e2:
+            print(f'Failed to create ServiceBusClient with WebSockets: {e2}')
+            print('Disabling Service Bus messaging — messages will not be sent.')
+            sb_client = None
 
 
 @app.route('/upload', methods=['POST'])
