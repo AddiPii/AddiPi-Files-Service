@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from azure.storage.blob import BlobServiceClient
-from azure.servicebus import ServiceBusClient, TransportType
+from azure.servicebus import ServiceBusClient
 import os
 import json
 import time
