@@ -1,5 +1,6 @@
 # AddiPi Files Service
 
+Deploy IP: http://20.240.84.7:5000
 Lekki mikroserwis do przesyłania plików G-code do Azure Blob Storage
 i powiadamiania systemu druku przez Azure Service Bus.
 
