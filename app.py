@@ -79,6 +79,11 @@ def health():
     return jsonify({'status': 'ok'}), 200
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({'message': 'AddiPi Files Service is running.'}), 200
+
+
 if __name__ == "__main__":
     print("AddiPi Files Service starting...")
     app.run(host='0.0.0.0', port=5000, debug=True)
