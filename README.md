@@ -26,7 +26,7 @@ i powiadamiania systemu druku przez Azure Service Bus.
 - Zainstalowane zależności:
 
 ```powershell
-C:/Users/oliwe/AppData/Local/Microsoft/WindowsApps/python3.13.exe -m pip install -r .\requirements.txt
+python3 -m pip install -r .\requirements.txt
 ```
 
 ## Zmienne środowiskowe
