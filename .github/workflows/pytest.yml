@@ -10,8 +10,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      STORAGE_CONN: 'dummy'
-      SERVICE_BUS_CONN: ''
+      STORAGE_CONN: ${{ secrets.STORAGE_CONN }}
+      SERVICE_BUS_CONN: ${{ secrets.SERVICE_BUS_CONN }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
