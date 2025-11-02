@@ -67,7 +67,7 @@ def upload_file():
         print(
             f'UPLOADED {original_filename} as {filename} to Service Bus Queue'
             )
-        return jsonify({'status': 'success', 'fileId': filename})
+        return jsonify({'status': 'success', 'fileId': filename}), 200
 
     except Exception as e:
         print(f'ERROR uploading {original_filename}: {e}')
@@ -82,6 +82,44 @@ def health():
 @app.route('/', methods=['GET'])
 def index():
     return jsonify({'message': 'AddiPi Files Service is running.'}), 200
+
+
+@app.route('/files/recent', methods=['GET'])
+def recent_files():
+    try:
+        container_client = blob_client.get_container_client('gcode')
+    except Exception as e:
+        print(f'ERROR accessing container client: {e}')
+        return jsonify({'error': 'storage_unavailable'}), 503
+
+    try:
+        if not container_client.exists():
+            # No container -> no files
+            return jsonify({'files': []}), 200
+
+        blobs = list(container_client.list_blobs())
+        # sort by last_modified (newest first)
+        blobs_sorted = sorted(
+            blobs, key=lambda b: getattr(
+                b, 'last_modified', None
+                ) or datetime.min, reverse=True
+        )
+
+        recent = []
+        for b in blobs_sorted[:10]:
+            recent.append({
+                'fileId': b.name,
+                'last_modified': b.last_modified.isoformat() if getattr(
+                    b, 'last_modified', None
+                    ) else None,
+                'size': getattr(b, 'size', None)
+            })
+
+        return jsonify({'files': recent}), 200
+
+    except Exception as e:
+        print(f'ERROR listing recent files: {e}')
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == "__main__":
