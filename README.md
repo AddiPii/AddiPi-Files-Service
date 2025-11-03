@@ -24,6 +24,7 @@ i powiadamiania systemu druku przez Azure Service Bus.
 
 - Python 3.11+ (kod testowany pod 3.13).
 - Dostęp do konta Azure (Storage Account z Blob, Service Bus namespace z queue).
+- Docker (Konteneryzacja i push konteneru do Azure)
 - Zainstalowane zależności:
 
 ```powershell
