@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from azure.storage.blob import BlobServiceClient
 from azure.servicebus import ServiceBusClient
 import os
@@ -8,6 +9,13 @@ from datetime import datetime
 
 
 app = Flask(__name__)
+
+CORS(app, resources={r"/*":
+                     {"origins": [
+                        "http://localhost:3000",
+                        "http://127.0.0.1:3000",
+                        "http://addipi-files.b3aaefdfe9dzdea0.swedencentral.azurecontainer.io:5000"
+                           ]}})
 
 STORAGE_CONN = os.getenv('STORAGE_CONN')
 SERVICE_BUS_CONN = os.getenv('SERVICE_BUS_CONN')
