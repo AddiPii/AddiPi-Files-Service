@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from azure.storage.blob import BlobServiceClient
 from azure.servicebus import ServiceBusClient
+from werkzeug.utils import secure_filename
 import os
 import json
 import time
@@ -15,12 +16,25 @@ long_origin = (
     "b3aaefdfe9dzdea0.swedencentral.azurecontainer.io:5000"
 )
 
-CORS(app, resources={r"/*":
-                     {"origins": [
-                        "http://localhost:3000",
-                        "http://127.0.0.1:3000",
-                        long_origin
-                           ]}})
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            long_origin,
+        ]
+    }
+})
+
+
+MAX_UPLOAD_SIZE = int(os.getenv('MAX_UPLOAD_SIZE', 50 * 1024 * 1024))
+_allowed = os.getenv('ALLOWED_EXTENSIONS', '.gcode')
+ALLOWED_EXTENSIONS = {
+    e.strip().lower()
+    for e in _allowed.split(',')
+    if e.strip()
+}
+STRICT_CONTENT_CHECK = os.getenv('STRICT_CONTENT_CHECK', '0') == '1'
 
 STORAGE_CONN = os.getenv('STORAGE_CONN')
 SERVICE_BUS_CONN = os.getenv('SERVICE_BUS_CONN')
@@ -50,19 +64,47 @@ def upload_file():
         return jsonify({'error': 'No File'}), 400
 
     file = request.files['file']
-    original_filename = file.filename
+    original_filename = secure_filename(file.filename or '')
+    if not original_filename:
+        return jsonify({'error': 'Invalid filename'}), 400
+
+    _, ext = os.path.splitext(original_filename)
+    ext = ext.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        resp = {
+            'error': 'invalid_file_type',
+            'allowed': list(ALLOWED_EXTENSIONS),
+        }
+        return jsonify(resp), 400
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{timestamp}_{original_filename}"
 
     print(f'UPLOADING {original_filename} as {filename}')
 
     try:
+        file_bytes = file.read()
+        size = len(file_bytes)
+        if size == 0:
+            return jsonify({'error': 'empty_file'}), 400
+        if size > MAX_UPLOAD_SIZE:
+            resp = {'error': 'file_too_large', 'max_bytes': MAX_UPLOAD_SIZE}
+            return jsonify(resp), 413
+
+        if STRICT_CONTENT_CHECK:
+            try:
+                head = file_bytes[:512].decode('utf-8', errors='ignore')
+            except Exception:
+                head = ''
+            if not any(ch in head for ch in ['G', 'M', 'g', 'm']):
+                resp = {'error': 'invalid_file_content'}
+                return jsonify(resp), 400
+
         container_client = blob_client.get_container_client('gcode')
         if not container_client.exists():
             container_client.create_container()
 
         blob = container_client.get_blob_client(filename)
-        blob.upload_blob(file, overwrite=True)
+        blob.upload_blob(file_bytes, overwrite=True)
         print(f'UPLOADED {original_filename} as {filename} to Blob Container')
 
         message = {
