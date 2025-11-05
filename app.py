@@ -10,11 +10,16 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+long_origin = (
+    "http://addipi-files."
+    "b3aaefdfe9dzdea0.swedencentral.azurecontainer.io:5000"
+)
+
 CORS(app, resources={r"/*":
                      {"origins": [
                         "http://localhost:3000",
                         "http://127.0.0.1:3000",
-                        "http://addipi-files.b3aaefdfe9dzdea0.swedencentral.azurecontainer.io:5000"
+                        long_origin
                            ]}})
 
 STORAGE_CONN = os.getenv('STORAGE_CONN')
