@@ -163,3 +163,36 @@ docker build -t addipi-files-service -f DOCKERFILE .
 ---
 
 Jeśli chcesz, mogę dodać do repo `README.md` (zostało zapisane), `.env.example`, `.gitignore` oraz opcjonalne skrypty pomocnicze (np. do usuwania wiadomości z kolejki). 
+
+
+## Zmienne środowiskowe serwisu (szczegóły)
+
+- `STORAGE_CONN` — connection string do Storage Account (wymagane).
+- `SERVICE_BUS_CONN` — connection string do Service Bus (opcjonalne).
+- `ALLOWED_EXTENSIONS` — lista dopuszczalnych rozszerzeń, domyślnie `.gcode`.
+- `MAX_UPLOAD_SIZE` — maksymalny rozmiar uploadu w bajtach (domyślnie 10 MB).
+- `STRICT_CONTENT_CHECK` — `0`/`1`, jeśli `1` włącza prostą heurystykę sprawdzania zawartości pliku.
+- `ALLOWED_ORIGINS` — lista originów dozwolonych przez CORS (comma-separated). Używaj pełnych adresów z protokołem, np. `https://app.yourdomain.com`.
+
+## CORS i deploy do ACI z dynamicznym FQDN
+
+Jeśli deployujesz do Azure Container Instances (ACI), FQDN kontenera może się zmieniać. Najlepsze podejście:
+
+1. W kodzie serwisu `app.py` czytaj `ALLOWED_ORIGINS` z env i ustaw CORS dynamicznie.
+2. Przy deployu ustaw `ALLOWED_ORIGINS` na domenę frontendu (lub na FQDN ACI jeśli frontend też używa tej domeny).
+
+Przykład `az container create` z przekazaniem `ALLOWED_ORIGINS`:
+
+```powershell
+az container create -g "<RG>" -n "<ACI_NAME>" \
+	--image "<ACR_LOGIN_SERVER>/<IMAGE_NAME>:<TAG>" \
+	--dns-name-label "<DNS_LABEL>" \
+	--ports 5000 \
+	--environment-variables ALLOWED_ORIGINS="https://app.yourdomain.com" \
+	--registry-login-server "<ACR_LOGIN_SERVER>" \
+	--registry-username "<ACR_USERNAME>" \
+	--registry-password "<ACR_PASSWORD>"
+```
+
+Uwaga: do testów lokalnych możesz użyć `http://localhost:3000` jako origin, ale w produkcji podawaj dokładną domenę.
+
