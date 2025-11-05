@@ -11,6 +11,7 @@ i powiadamiania systemu druku przez Azure Service Bus.
 	- `POST /upload` — upload pliku (multipart/form-data). Pole pliku: `file`. Opcjonalne pole: `scheduledAt` (datetime-local).
 	- `GET /health` — health check (zwraca JSON).
 	- `GET /` — prosty status serwisu.
+	- `GET /files/recent` - zwraca listę właściwości ostatnich 10 plików.
 - Zapis plików: Azure Blob Storage, kontener `gcode`.
 - Powiadomienia: Azure Service Bus — queue `print-queue` (wysyła JSON z eventem `file_uploaded`).
 
