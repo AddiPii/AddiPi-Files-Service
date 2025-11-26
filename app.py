@@ -38,6 +38,7 @@ STRICT_CONTENT_CHECK = os.getenv('STRICT_CONTENT_CHECK', '0') == '1'
 
 STORAGE_CONN = os.getenv('STORAGE_CONN')
 SERVICE_BUS_CONN = os.getenv('SERVICE_BUS_CONN')
+PORT = os.getenv('FILES_PORT') | 5000
 
 if not STORAGE_CONN:
     raise ValueError("STORAGE_CONN environment variable is not set.")
@@ -179,4 +180,4 @@ def recent_files():
 
 if __name__ == "__main__":
     print("AddiPi Files Service starting...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=PORT, debug=True)
