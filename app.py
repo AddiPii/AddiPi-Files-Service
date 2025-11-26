@@ -38,7 +38,10 @@ STRICT_CONTENT_CHECK = os.getenv('STRICT_CONTENT_CHECK', '0') == '1'
 
 STORAGE_CONN = os.getenv('STORAGE_CONN')
 SERVICE_BUS_CONN = os.getenv('SERVICE_BUS_CONN')
-PORT = os.getenv('FILES_PORT') | 5000
+PORT = os.getenv('FILES_PORT')
+
+if not PORT:
+    PORT = 5000
 
 if not STORAGE_CONN:
     raise ValueError("STORAGE_CONN environment variable is not set.")
