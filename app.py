@@ -1,4 +1,4 @@
-#AddiPi Files Service
+# AddiPi Files Service
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from azure.storage.blob import BlobServiceClient
