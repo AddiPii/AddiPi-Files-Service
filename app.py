@@ -1,13 +1,12 @@
 # AddiPi Files Service
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from azure.storage.blob import BlobServiceClient
-from azure.servicebus import ServiceBusClient
 from werkzeug.utils import secure_filename
 import os
 import json
 import time
 from datetime import datetime
+from config.config import init_config
 
 
 app = Flask(__name__)
@@ -27,40 +26,7 @@ CORS(app, resources={
     }
 })
 
-
-MAX_UPLOAD_SIZE = int(os.getenv('MAX_UPLOAD_SIZE', 50 * 1024 * 1024))
-_allowed = os.getenv('ALLOWED_EXTENSIONS', '.gcode')
-ALLOWED_EXTENSIONS = {
-    e.strip().lower()
-    for e in _allowed.split(',')
-    if e.strip()
-}
-STRICT_CONTENT_CHECK = os.getenv('STRICT_CONTENT_CHECK', '0') == '1'
-
-STORAGE_CONN = os.getenv('STORAGE_CONN')
-SERVICE_BUS_CONN = os.getenv('SERVICE_BUS_CONN')
-PORT = os.getenv('FILES_PORT')
-
-if not PORT:
-    PORT = 5000
-
-if not STORAGE_CONN:
-    raise ValueError("STORAGE_CONN environment variable is not set.")
-else:
-    try:
-        blob_client = BlobServiceClient.from_connection_string(STORAGE_CONN)
-    except Exception as e:
-        raise ConnectionRefusedError(
-            f'Failed to connect to Azure Blob Storage: {e}')
-
-sb_client = None
-if not SERVICE_BUS_CONN:
-    print("SERVICE_BUS_CONN not set — Service Bus messaging will be disabled.")
-else:
-    try:
-        sb_client = ServiceBusClient.from_connection_string(SERVICE_BUS_CONN)
-    except Exception as e:
-        print(f'Failed to create ServiceBusClient (AMQP): {e}')
+init_config(app)
 
 
 @app.route('/upload', methods=['POST'])
