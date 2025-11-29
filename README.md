@@ -5,194 +5,220 @@ Deploy IP: http://addipi-files.b3aaefdfe9dzdea0.swedencentral.azurecontainer.io:
 Lekki mikroserwis do przesyłania plików G-code do Azure Blob Storage
 i powiadamiania systemu druku przez Azure Service Bus.
 
-## Krótko
+# AddiPi Files Service — English
 
-- Endpointy:
-	- `POST /upload` — upload pliku (multipart/form-data). Pole pliku: `file`. Opcjonalne pole: `scheduledAt` (datetime-local).
-	- `GET /health` — health check (zwraca JSON).
-	- `GET /` — prosty status serwisu.
-	- `GET /files/recent` - zwraca listę właściwości ostatnich 10 plików.
-- Zapis plików: Azure Blob Storage, kontener `gcode`.
-- Powiadomienia: Azure Service Bus — queue `print-queue` (wysyła JSON z eventem `file_uploaded`).
+Lightweight Flask microservice for uploading G-code files to Azure Blob Storage and sending notifications via Azure Service Bus.
 
-## Zawartość repo
+IMPORTANT: Recent refactor — endpoints were moved to a Flask `Blueprint` and controller functions were added. See "Repository changes" below.
 
-- `app.py` — główny serwis Flask.
-- `requirements.txt` — wymagane pakiety Python.
-- `DOCKERFILE` — prosty obraz Docker do uruchomienia serwisu.
-- `test.html` — prosty formularz HTML do ręcznego uploadu.
+Quick summary
+- Endpoints:
+	- `POST /upload` — upload file (multipart/form-data). File field: `file`. Optional form field: `scheduledAt`.
+	- `GET /health` — health check (returns JSON).
+	- `GET /` — basic service status.
+	- `GET /files/recent` — recent files (up to 10 most recent).
+- Storage: Azure Blob Storage, container `gcode`.
+- Notifications: Azure Service Bus queue `print-queue` (message JSON with `event: file_uploaded`). Service Bus is optional — uploads still succeed if messaging fails.
 
-## Wymagania
+Repository changes (recent)
+- `controllers/files_controller.py` — new controller functions `upload_file_handler` and `recent_files_handler` that contain upload/list logic.
+- `routes/files_bp.py` — new Flask `Blueprint('files')` which registers routes and delegates to the controller functions.
+- `app.py` — now registers the blueprint and exposes dependencies via `app.config` (e.g. `BLOB_CLIENT`, `SB_CLIENT`, `MAX_UPLOAD_SIZE`, `ALLOWED_EXTENSIONS`, `STRICT_CONTENT_CHECK`).
+- `.gitignore` — added `controllers/__pycache__/` (and consider ignoring all `__pycache__/`).
 
-- Python 3.11+ (kod testowany pod 3.13).
-- Dostęp do konta Azure (Storage Account z Blob, Service Bus namespace z queue).
-- Docker (Konteneryzacja i push konteneru do Azure)
-- Zainstalowane zależności:
+Important notes about defaults
+- `MAX_UPLOAD_SIZE` default: 50 * 1024 * 1024 (50 MB).
+- `ALLOWED_EXTENSIONS` default: `.gcode` (can be set via env `ALLOWED_EXTENSIONS` comma-separated).
 
-```powershell
-python3 -m pip install -r .\requirements.txt
-```
+Environment variables
+- `STORAGE_CONN` — required: Azure Storage connection string for Blob access.
+- `SERVICE_BUS_CONN` — optional: Azure Service Bus connection string. If missing, messaging is disabled (uploads still work).
+- `ALLOWED_EXTENSIONS` — optional comma-separated list (default `.gcode`).
+- `MAX_UPLOAD_SIZE` — optional (bytes, default 50MB).
+- `STRICT_CONTENT_CHECK` — `0` or `1` (default `0`). If `1`, a simple content heuristic is applied to uploaded files.
 
-## Zmienne środowiskowe
-
-Serwis odczytuje następujące zmienne środowiskowe:
-- `STORAGE_CONN` — connection string do Azure Storage Account (Blob).
-- `SERVICE_BUS_CONN` — connection string do Azure Service Bus (opcjonalne; jeśli brak, messaging jest wyłączony).
-
-Przykład pliku `.env` (nie commituj prawdziwych kluczy):
-
-```
-STORAGE_CONN=DefaultEndpointsProtocol=https;AccountName=addipifiles;AccountKey=...;EndpointSuffix=core.windows.net
-SERVICE_BUS_CONN=Endpoint=sb://addipisb.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=...
-```
-
-Upewnij się, że nie ma spacji wokół `=` i że nie opakowujesz wartości w `<...>`.
-
-## Uruchomienie lokalnie
-
-1. Ustaw zmienne środowiskowe (PowerShell), albo stwórz `.env` jeśli używasz `python-dotenv`:
-
-```powershell
-$env:STORAGE_CONN="DefaultEndpointsProtocol=https;AccountName=addipifiles;AccountKey=...;EndpointSuffix=core.windows.net"
-$env:SERVICE_BUS_CONN="Endpoint=sb://addipisb.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=..."
-```
-
-2. Zainstaluj zależności i uruchom:
+Local run (example, PowerShell)
+1. Install dependencies:
 
 ```powershell
 python -m pip install -r requirements.txt
+```
+
+2. Set env vars and run (example):
+
+```powershell
+#$env:STORAGE_CONN = "DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+#$env:SERVICE_BUS_CONN = ""  # optional
 python app.py
 ```
 
-Serwis będzie dostępny na http://localhost:5000
+If you don't want to connect to Azure for local testing, either set a placeholder `STORAGE_CONN` (e.g. a local emulator) or modify `app.py` to allow running without a blob client during development. I can add a safe development mode on request.
 
-## Uruchomienie w Dockerze
-
-Budowanie i uruchomienie obrazu:
+Running tests
+- There is a simple test `tests/test_health.py` that imports `app` and checks `/health`. Be aware `app.py` attempts to create `BlobServiceClient` at import time; to run tests without Azure, set `STORAGE_CONN` to a valid value or update the app to avoid raising on missing env. Example command:
 
 ```powershell
-docker build -t addipi-files-service -f DOCKERFILE .
-docker run -p 5000:5000 `
-	-e STORAGE_CONN="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net" `
-	-e SERVICE_BUS_CONN="Endpoint=sb://addipisb.servicebus.windows.net/;SharedAccessKeyName=...;SharedAccessKey=..." `
-	addipi-files-service
+# set env then run pytest
+#$env:STORAGE_CONN = "UseDevelopmentStorage=true"
+# AddiPi Files Service — English
+
+Lightweight Flask microservice for uploading G-code files to Azure Blob Storage and sending notifications via Azure Service Bus.
+
+Important: Recent refactor moved route logic into a Flask Blueprint and controller functions — see "Repository changes".
+
+## Quick summary
+
+- Endpoints:
+	- `POST /upload` — upload file (multipart/form-data). File field: `file`. Optional form field: `scheduledAt`.
+	- `GET /health` — health check (returns JSON).
+	- `GET /` — basic service status.
+	- `GET /files/recent` — recent files (up to 10 most recent).
+- Storage: Azure Blob Storage, container `gcode`.
+- Notifications: Azure Service Bus queue `print-queue` (message JSON with `event: file_uploaded`). Service Bus is optional — uploads still succeed if messaging fails.
+
+## Repository changes
+
+- `controllers/files_controller.py` — new controller functions `upload_file_handler` and `recent_files_handler`.
+- `routes/files_bp.py` — new Flask `Blueprint('files')` that registers routes and delegates to controllers.
+- `app.py` — now registers the blueprint and exposes dependencies via `app.config` (e.g. `BLOB_CLIENT`, `SB_CLIENT`, `MAX_UPLOAD_SIZE`, `ALLOWED_EXTENSIONS`, `STRICT_CONTENT_CHECK`).
+- `.gitignore` — added `controllers/__pycache__/` (consider ignoring all `__pycache__/`).
+
+## Defaults and configuration
+
+- `MAX_UPLOAD_SIZE` default: 50 * 1024 * 1024 (50 MB).
+- `ALLOWED_EXTENSIONS` default: `.gcode` (env `ALLOWED_EXTENSIONS` comma-separated).
+- `STRICT_CONTENT_CHECK` default: `0` (set to `1` to enable a simple content heuristic).
+
+Environment variables
+
+- `STORAGE_CONN` — required: Azure Storage connection string (Blob).
+- `SERVICE_BUS_CONN` — optional: Azure Service Bus connection string. If missing, messaging is disabled.
+- `ALLOWED_EXTENSIONS` — optional comma-separated list (default `.gcode`).
+- `MAX_UPLOAD_SIZE` — optional (bytes, default 50MB).
+- `STRICT_CONTENT_CHECK` — `0` or `1` (default `0`).
+
+## Local run (PowerShell)
+
+1. Install dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-## API — przykłady uploadu
+2. Set env vars and run (example):
 
-Polecenie `curl` (PowerShell): użyj `curl.exe` by uniknąć aliasu PowerShell
+```powershell
+# set STORAGE_CONN to your Azure Storage connection string
+$env:STORAGE_CONN = "DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+# optional: SERVICE_BUS_CONN
+$env:SERVICE_BUS_CONN = ""
+python app.py
+```
+
+If you want to run without Azure for quick local testing, either set a placeholder `STORAGE_CONN` (local emulator) or I can add a development mode that avoids raising on missing storage.
+
+## Tests
+
+- `tests/test_health.py` imports `app` and checks `/health`.
+- Note: `app.py` currently instantiates `BlobServiceClient` at import time and will raise if `STORAGE_CONN` is not set. To run tests without Azure, set `STORAGE_CONN` or modify `app.py` to allow importing without a blob client. Example:
+
+```powershell
+# set env then run pytest
+$env:STORAGE_CONN = "UseDevelopmentStorage=true"
+pytest -q
+```
+
+## API examples
+
+- Upload (PowerShell/curl.exe):
 
 ```powershell
 curl.exe -v -X POST http://localhost:5000/upload `
-	-F "file=@C:\full\path\to\test.gcode" `
+	-F "file=@C:\path\to\test.gcode" `
 	-F "scheduledAt=2025-11-01T12:00:00"
 ```
 
-Przykład prostego HTML (plik `test.html`) — otwórz w przeglądarce i wyślij plik.
-
-Odpowiedź sukcesu:
-
-```json
-{"status":"success","fileId":"20251101_035701_test.gcode"}
-```
-
-## Co robi serwis po uploadzie
-
-1. Tworzy blob o nazwie: `TIMESTAMP_originalFilename` (np. `20251101_035701_test.gcode`) w kontenerze `gcode`.
-2. Publikuje wiadomość do Service Bus queue `print-queue` w formacie JSON:
-
-```json
-{
-	"event": "file_uploaded",
-	"fileId": "20251101_035701_test.gcode",
-	"originalFileName": "test.gcode",
-	"timestamp": "169xxx",
-	"scheduledAt": "2025-11-01T12:00:00"
-}
-```
-
-Jeśli Service Bus jest niedostępny, serwis loguje problem, ale upload do Bloba nadal zostanie wykonany.
-
-## Troubleshooting — Service Bus
-
-- DNS/połączenie: "getaddrinfo failed" lub "Name resolution failed" — sprawdź, czy namespace (np. `addipisb.servicebus.windows.net`) istnieje i jest poprawny.
-- `amqp:client-error` — często oznacza, że kolejka `print-queue` nie istnieje lub brak uprawnień.
-
-Szybkie sprawdzenia (PowerShell):
-
-```powershell
-nslookup addipisb.servicebus.windows.net
-Test-NetConnection addipisb.servicebus.windows.net -Port 5671
-Test-NetConnection addipisb.servicebus.windows.net -Port 443
-```
-
-Jeśli queue nie istnieje, utwórz ją w Azure Portal lub przez Azure CLI:
-
-```powershell
-az servicebus queue create --resource-group <rg> --namespace-name <namespace> --name print-queue
-```
-
-## Usuwanie/obsługa wiadomości z kolejki
-
-- Portal Azure -> Service Bus -> Namespace -> Queues -> `print-queue` -> Data Explorer (Service Bus Explorer) — możesz "Peek", "Receive" i "Complete"/"Dead-letter".
-- Możesz też użyć prostego skryptu Python (dodam go do repo na życzenie) do znalezienia i usunięcia wiadomości po `fileId`.
-
-## Bezpieczeństwo
-
-- Nie commituj `.env` ani connection stringów do repo.
-- Dodaj `.env` do `.gitignore`.
-- Jeśli klucze wyciekły, rotuj je w Azure Portal.
-
-## Development notes
-
-- Serwis loguje informację o uploadzie i ewentualnych błędach przy łączeniu do Service Bus.
-- W kodzie istnieje fallback: jeśli Service Bus jest nieosiągalny, aplikacja nadal zapisze plik w Blob i zaloguje, że wysyłka wiadomości została pominięta.
-
-## Contribution
-
-- Zgłaszaj PRy do gałęzi `main`.
-- Po mergu uruchom lokalne testy: uruchom serwis i prześlij testowy plik przy pomocy `test.html` lub `curl`.
-
-## Przydatne polecenia
+- Health:
 
 ```powershell
 curl.exe http://localhost:5000/health
-docker build -t addipi-files-service -f DOCKERFILE .
 ```
+
+## Notes about CORS
+
+- CORS is configured in `app.py` (includes `http://localhost:3000` and a deployment FQDN). Edit `app.py` to change allowed origins or ask me to add env-driven CORS.
 
 ---
 
-Jeśli chcesz, mogę dodać do repo `README.md` (zostało zapisane), `.env.example`, `.gitignore` oraz opcjonalne skrypty pomocnicze (np. do usuwania wiadomości z kolejki). 
+# AddiPi Files Service — Polski
 
+Lekki mikroserwis Flask do przesyłania plików G-code do Azure Blob Storage i powiadamiania przez Azure Service Bus.
 
-## Zmienne środowiskowe serwisu (szczegóły)
+Ważne: Niedawno zrefaktoryzowano kod — logika tras przeniesiona do `Blueprint` i funkcji w folderze `controllers`.
 
-- `STORAGE_CONN` — connection string do Storage Account (wymagane).
-- `SERVICE_BUS_CONN` — connection string do Service Bus (opcjonalne).
-- `ALLOWED_EXTENSIONS` — lista dopuszczalnych rozszerzeń, domyślnie `.gcode`.
-- `MAX_UPLOAD_SIZE` — maksymalny rozmiar uploadu w bajtach (domyślnie 10 MB).
-- `STRICT_CONTENT_CHECK` — `0`/`1`, jeśli `1` włącza prostą heurystykę sprawdzania zawartości pliku.
-- `ALLOWED_ORIGINS` — lista originów dozwolonych przez CORS (comma-separated). Używaj pełnych adresów z protokołem, np. `https://app.yourdomain.com`.
+## Szybkie podsumowanie
 
-## CORS i deploy do ACI z dynamicznym FQDN
+- Endpointy:
+	- `POST /upload` — przesyłanie pliku (multipart/form-data). Pole pliku: `file`. Opcjonalne pole formularza: `scheduledAt`.
+	- `GET /health` — health check (zwraca JSON).
+	- `GET /` — status serwisu.
+	- `GET /files/recent` — lista ostatnich plików (do 10).
+- Przechowywanie: Azure Blob Storage, kontener `gcode`.
+- Powiadomienia: Service Bus queue `print-queue` (wiadomość JSON z `event: file_uploaded`). Messaging jest opcjonalny — uploady działają bez kolejki.
 
-Jeśli deployujesz do Azure Container Instances (ACI), FQDN kontenera może się zmieniać. Najlepsze podejście:
+## Zmiany w repozytorium
 
-1. W kodzie serwisu `app.py` czytaj `ALLOWED_ORIGINS` z env i ustaw CORS dynamicznie.
-2. Przy deployu ustaw `ALLOWED_ORIGINS` na domenę frontendu (lub na FQDN ACI jeśli frontend też używa tej domeny).
+- `controllers/files_controller.py` — funkcje kontrolera `upload_file_handler` i `recent_files_handler`.
+- `routes/files_bp.py` — `Blueprint('files')` rejestrujący trasy i delegujący do kontrolerów.
+- `app.py` — rejestruje blueprint i umieszcza zależności w `app.config` (np. `BLOB_CLIENT`, `SB_CLIENT`, `MAX_UPLOAD_SIZE`, `ALLOWED_EXTENSIONS`, `STRICT_CONTENT_CHECK`).
+- `.gitignore` — dodano `controllers/__pycache__/`.
 
-Przykład `az container create` z przekazaniem `ALLOWED_ORIGINS`:
+## Domyślne ustawienia
+
+- `MAX_UPLOAD_SIZE`: 50 MB (50 * 1024 * 1024).
+- `ALLOWED_EXTENSIONS`: domyślnie `.gcode`.
+- `STRICT_CONTENT_CHECK`: domyślnie `0` (ustaw `1`, by włączyć prostą walidację zawartości pliku).
+
+## Zmienne środowiskowe
+
+- `STORAGE_CONN` — wymagane: connection string do Azure Storage (Blob).
+- `SERVICE_BUS_CONN` — opcjonalne: connection string do Azure Service Bus. Jeśli brak, messaging jest wyłączony.
+- `ALLOWED_EXTENSIONS`, `MAX_UPLOAD_SIZE`, `STRICT_CONTENT_CHECK` — jak wyżej.
+
+## Uruchomienie lokalne (PowerShell)
+
+1. Zainstaluj zależności:
 
 ```powershell
-az container create -g "<RG>" -n "<ACI_NAME>" \
-	--image "<ACR_LOGIN_SERVER>/<IMAGE_NAME>:<TAG>" \
-	--dns-name-label "<DNS_LABEL>" \
-	--ports 5000 \
-	--environment-variables ALLOWED_ORIGINS="https://app.yourdomain.com" \
-	--registry-login-server "<ACR_LOGIN_SERVER>" \
-	--registry-username "<ACR_USERNAME>" \
-	--registry-password "<ACR_PASSWORD>"
+python -m pip install -r requirements.txt
 ```
 
-Uwaga: do testów lokalnych możesz użyć `http://localhost:3000` jako origin, ale w produkcji podawaj dokładną domenę.
+2. Ustaw zmienne środowiskowe i uruchom:
 
+```powershell
+$env:STORAGE_CONN = "DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+$env:SERVICE_BUS_CONN = ""
+python app.py
+```
+
+Jeśli chcesz testować lokalnie bez Azure, ustaw tymczasowy `STORAGE_CONN` lub poproszę o dodanie trybu developerskiego, który nie wymaga storage przy imporcie.
+
+## Testy
+
+- `tests/test_health.py` sprawdza endpoint `/health`.
+- Uwaga: `app.py` tworzy `BlobServiceClient` podczas importu; aby uruchomić testy bez Azure ustaw `STORAGE_CONN` lub zmodyfikuj `app.py`.
+
+## Przykłady API
+
+- Upload (PowerShell/curl.exe):
+
+```powershell
+curl.exe -v -X POST http://localhost:5000/upload `
+	-F "file=@C:\path\to\test.gcode"
+```
+
+## CORS
+
+- CORS jest ustawione w `app.py` (m.in. `http://localhost:3000` i FQDN deployu). Edytuj `app.py` aby zmienić dozwolone originy lub poproś mnie o dodanie konfiguracji przez zmienne środowiskowe.
+
+---
