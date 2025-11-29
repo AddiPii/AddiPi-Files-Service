@@ -1,1 +1,5 @@
 .env
+controllers/__pycache__/
+config/__pycache__/
+routes/__pycache__/
+__pycache__/
