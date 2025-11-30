@@ -28,7 +28,10 @@ def upload_file():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{timestamp}_{original_filename}"
 
-    print(f'UPLOADING {original_filename} as {filename}')
+    user_id = request.get('userId')
+    user_email = request.get('email')
+
+    print(f'UPLOADING {original_filename} as {filename} by user {user_email}')
 
     try:
         file_bytes = file.read()
@@ -63,6 +66,8 @@ def upload_file():
             'event': 'file_uploaded',
             'fileId': filename,
             'originalFileName': original_filename,
+            'userId': user_id,
+            'userEmail': user_email,
             'timestamp': str(time.time()),
             'scheduledAt': request.form.get('scheduledAt')
         }
