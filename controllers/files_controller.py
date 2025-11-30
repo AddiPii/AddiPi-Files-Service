@@ -4,8 +4,10 @@ import os
 import json
 import time
 from datetime import datetime
+from middleware.require_auth import require_auth
 
 
+@require_auth
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No File'}), 400
