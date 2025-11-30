@@ -13,15 +13,7 @@ long_origin = (
     "b3aaefdfe9dzdea0.swedencentral.azurecontainer.io:5000"
 )
 
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            long_origin,
-        ]
-    }
-})
+CORS(app)
 
 init_config(app)
 

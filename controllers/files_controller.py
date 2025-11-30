@@ -30,8 +30,11 @@ def upload_file():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{timestamp}_{original_filename}"
 
-    user_id = request.get('userId')
-    user_email = request.get('email')
+    user = getattr(request, 'user', {}) or {}
+    # common possible keys: 'userId', 'id', 'email'
+    user_id = user.get('userId') or user.get('id')
+    user_email = user.get('email') or user.get('user_email')
+    print(f'user mail: {user_email}, user id: {user_id}')
 
     print(f'UPLOADING {original_filename} as {filename} by user {user_email}')
 
