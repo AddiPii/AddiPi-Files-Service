@@ -48,5 +48,8 @@ def init_config(app):
             app.config['SERVICE_BUS_CLIENT'] = None
 
     app.config['PORT'] = int(os.getenv('FILES_PORT', 5000))
+    app.config['AUTH_SERVICE_URL'] = os.getenv('AUTH_SERVICE_URL')
+    if not app.config['AUTH_SERVICE_URL']:
+        print('AUTH_SERVICE_URL not set')
 
     return app
