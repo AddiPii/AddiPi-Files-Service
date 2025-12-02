@@ -18,7 +18,7 @@ def require_auth(f):
         try:
             response = requests.post(
                 f'{current_app.config["AUTH_SERVICE_URL"]}/auth/verify',
-                headers={'Authorization': f'Bearer{token}'},
+                headers={'Authorization': f'Bearer {token}'},
                 timeout=5
             )
             '''print(f"🔍 Auth service response: {response.status_code}") #DEBUG
