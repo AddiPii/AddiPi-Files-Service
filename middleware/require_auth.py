@@ -32,9 +32,11 @@ def require_auth(f):
             request.user = user_data
             return f(*args, **kwargs)
         except Exception as e:
+            print(f'Auth URL: {current_app.config["AUTH_SERVICE_URL"]}')
             print(f'❌ Auth verification error: {e}')
             return jsonify({
-                'error': 'Authentication service unavailable'
+                'error': 'Authentication service unavailable',
+                'URL': current_app.config["AUTH_SERVICE_URL"]
                 }), 503
 
     return decorated_function
