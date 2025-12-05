@@ -95,6 +95,7 @@ def upload_file():
         return jsonify({'error': str(e)}), 500
 
 
+@require_auth
 def recent_files():
     try:
         blob_client = current_app.config['BLOB_CLIENT']
