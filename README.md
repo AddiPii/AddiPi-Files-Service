@@ -24,6 +24,7 @@ Repository changes (recent)
 - `controllers/files_controller.py` — new controller functions `upload_file_handler` and `recent_files_handler` that contain upload/list logic.
 - `routes/files_bp.py` — new Flask `Blueprint('files')` which registers routes and delegates to the controller functions.
 - `app.py` — now registers the blueprint and exposes dependencies via `app.config` (e.g. `BLOB_CLIENT`, `SB_CLIENT`, `MAX_UPLOAD_SIZE`, `ALLOWED_EXTENSIONS`, `STRICT_CONTENT_CHECK`).
+- `Dockerfile.oracle` — production image using Gunicorn, intended for Oracle Cloud / VM deployment.
 - `.gitignore` — added `controllers/__pycache__/` (and consider ignoring all `__pycache__/`).
 
 Important notes about defaults
