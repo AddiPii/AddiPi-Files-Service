@@ -39,12 +39,21 @@ def upload_file():
     print(f'UPLOADING {original_filename} as {filename} by user {user_email}')
 
     try:
+        content_length = request.content_length
+        max_size = current_app.config['MAX_UPLOAD_SIZE']
+
+        if content_length is None:
+            return jsonify({'error': 'missing_content_length'}), 411
+
+        if content_length > max_size:
+            resp = {'error': 'file_too_large', 'max_bytes': max_size}
+            return jsonify(resp), 413
+
         file_bytes = file.read()
         size = len(file_bytes)
         if size == 0:
             return jsonify({'error': 'empty_file'}), 400
 
-        max_size = current_app.config['MAX_UPLOAD_SIZE']
         if size > max_size:
             resp = {'error': 'file_too_large', 'max_bytes': max_size}
             return jsonify(resp), 413
